@@ -37,8 +37,6 @@ def plot_circle():
         if w>5 and w<6:
             ts.append(t)
             weight.append(w)
-    bottom = 8
-    max_height = 4
 
     N = 24
     theta = np.linspace(0.0, 2 * np.pi, N, endpoint=False)
@@ -47,13 +45,15 @@ def plot_circle():
     for t in ts:
         date_time = datetime.fromtimestamp(t).astimezone(EST)
         h = date_time.hour
-        i = int(np.floor(h/24.*N))
+        m = date_time.minute
+        i = int(np.round((h+m/60.)/24.*N))%N
         radii[i] += 1
 
     fig, ax = plt.subplots(1,1, subplot_kw={'projection': 'polar'})
     ax.set_theta_zero_location("S")
     ax.set_theta_direction(-1)
-    ax.set_xticklabels(['midnight', '', '6am', '', 'noon', '', '6pm', ''])
+    ax.set_yticklabels([])
+    ax.set_xticklabels(['midnight', '3am', '6am', '9am', 'noon', '3pm', '6pm', '9pm'])
     bars = ax.bar(theta, radii, width=width, bottom=0)
 
     max_r = np.max(radii)
@@ -81,8 +81,6 @@ def plot_history():
         if w>5 and w<6:
             ts.append(t)
             weight.append(w)
-    bottom = 8
-    max_height = 4
 
     fig, ax = plt.subplots(1,1)
     ts = np.array(ts)
