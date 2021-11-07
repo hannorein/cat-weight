@@ -5,6 +5,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import io
 from matplotlib.figure import Figure
 import time
+from matplotlib.dates import (DAILY, DateFormatter, rrulewrapper, RRuleLocator, drange)
 from datetime import datetime
 import pytz
 EST = pytz.timezone('US/Eastern')
@@ -66,6 +67,48 @@ def plot_circle():
     return Response(output.getvalue(), mimetype='image/png')
 
 
+@app.route("/plot/history")
+def plot_history():
+
+    with open("/home/rein/cat-weight/data.txt","r") as f:
+        lines = f.readlines()
+    ts = []
+    weight = []
+    for l in lines:
+        t, w, z = l.split("\t")
+        w = float(w)
+        t = float(t)
+        if w>5 and w<6:
+            ts.append(t)
+            weight.append(w)
+    bottom = 8
+    max_height = 4
+
+    fig, ax = plt.subplots(1,1)
+    ts = np.array(ts)
+    ts_d = []
+    for t in ts:
+        date_time = datetime.fromtimestamp(t).astimezone(EST)
+        ts_d.append(date_time)
+
+    rule = rrulewrapper(DAILY, interval=1)
+    loc = RRuleLocator(rule)
+    ax.xaxis.set_major_locator(loc)
+    formatter = DateFormatter('%Y/%m/%d')
+    ax.xaxis.set_major_formatter(formatter)
+    ax.xaxis.set_tick_params(rotation=30, labelsize=10)
+    ax.set_ylabel("Sweetie's weight [kg]")
+    
+    ax.plot_date(ts_d, weight, xdate=True)
+    ax.plot_date(ts_d, weight,  fmt="-",xdate=True)
+
+    fig.tight_layout()
+    output = io.BytesIO()
+    FigureCanvas(fig).print_png(output)
+    return Response(output.getvalue(), mimetype='image/png')
+
+
+
 @app.route("/list")
 def show_list():
     with open("/home/rein/cat-weight/data.txt","r") as f:
@@ -77,9 +120,28 @@ def show_list():
         ts.append(float(t))
         weight.append(float(w))
 
-    html = "<html><body><table style='padding: 9px'>"
+    html = "<html><body>"
     
-    for t, w in zip(ts,weight):
+    html += "<img src='/plot/circle' width=500>"
+    html += "<img src='/plot/history' width=500>"
+    
+    html += "<br /><br />"
+
+    
+    
+    date_time = datetime.fromtimestamp(ts[-1]).astimezone(EST)
+    d = date_time.strftime("%Y/%m/%d %H:%M:%S")
+    html += "Last heartbeat: "+d
+    total_seconds = (datetime.now() - datetime.fromtimestamp(ts[-1])).total_seconds()
+    if total_seconds > 120:
+        html += "  (%.1f m ago)"%(total_seconds/60.)
+    else:
+        html += "  (%.0f s ago)"%(total_seconds)
+    
+    
+    
+    html += "<table style='padding: 9px'>"
+    for t, w in zip(reversed(ts),reversed(weight)):
         if w>5 and w<6:
             date_time = datetime.fromtimestamp(t).astimezone(EST)
             d = date_time.strftime("%Y/%m/%d %H:%M:%S")
@@ -89,14 +151,6 @@ def show_list():
             html += "</tr>"
     html += "</table>"
     html += "<br /><br />"
-    date_time = datetime.fromtimestamp(t).astimezone(EST)
-    d = date_time.strftime("%Y/%m/%d %H:%M:%S")
-    html += "Last heartbeat: "+d
-    total_seconds = (datetime.now() - datetime.fromtimestamp(t)).total_seconds()
-    if total_seconds > 120:
-        html += "  (%.1f m ago)"%(total_seconds/60.)
-    else:
-        html += "  (%.0f s ago)"%(total_seconds)
 
     html += "</body></html>"
     
