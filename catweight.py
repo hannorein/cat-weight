@@ -1,13 +1,17 @@
 from flask import Flask, request, Response
 import numpy as np
+import os
+os.environ['MPLCONFIGDIR'] = '/opt/cat-weight/.config/matplotlib'
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import io
 from matplotlib.figure import Figure
 import time
-from matplotlib.dates import (DAILY, DateFormatter, rrulewrapper, RRuleLocator, drange)
+from matplotlib.dates import (MONTHLY, DateFormatter, rrulewrapper, RRuleLocator, drange)
 from datetime import datetime
 import pytz
+import warnings
+warnings.filterwarnings("ignore")
 EST = pytz.timezone('US/Eastern')
 
 app = Flask(__name__)
@@ -34,7 +38,7 @@ def plot_circle():
         t, w, z = l.split("\t")
         w = float(w)
         t = float(t)
-        if w>5 and w<6:
+        if w>4.7 and w<6:
             ts.append(t)
             weight.append(w)
 
@@ -78,7 +82,7 @@ def plot_history():
         t, w, z = l.split("\t")
         w = float(w)
         t = float(t)
-        if w>5 and w<6:
+        if w>4.7 and w<6:
             ts.append(t)
             weight.append(w)
 
@@ -89,7 +93,7 @@ def plot_history():
         date_time = datetime.fromtimestamp(t).astimezone(EST)
         ts_d.append(date_time)
 
-    rule = rrulewrapper(DAILY, interval=1)
+    rule = rrulewrapper(MONTHLY, interval=2)
     loc = RRuleLocator(rule)
     ax.xaxis.set_major_locator(loc)
     formatter = DateFormatter('%Y/%m/%d')
@@ -140,7 +144,7 @@ def show_list():
     
     html += "<table style='padding: 9px'>"
     for t, w in zip(reversed(ts),reversed(weight)):
-        if w>5 and w<6:
+        if w>4.7 and w<6:
             date_time = datetime.fromtimestamp(t).astimezone(EST)
             d = date_time.strftime("%Y/%m/%d %H:%M:%S")
             html += "<tr>"
